@@ -1,5 +1,6 @@
 use crate::core::{
-    BasicBlock, BlockId, Context, Function, MirFunId, Operand, Statement, Terminator,
+    BasicBlock, BinOp, BlockId, Context, Function, LocalId, MirFunId, MirType, Operand, Place,
+    RValue, Statement, Terminator,
 };
 
 pub struct Builder<'a> {
@@ -13,6 +14,11 @@ pub struct Builder<'a> {
 pub enum BuildError {
     NoBlockInFun(BlockId, MirFunId),
     InvalidInstructionIndex(usize),
+    MismatchedBinOp {
+        op: BinOp,
+        lhs: Operand,
+        rhs: Operand,
+    },
 }
 
 impl Function {
@@ -22,12 +28,29 @@ impl Function {
         self.reserved.insert(res);
         res
     }
+
+    pub fn new_local(&mut self, ty: MirType) -> LocalId {
+        let min = self
+            .locals
+            .iter()
+            .map(|x| x.0)
+            .max_by(u32::cmp)
+            .unwrap_or(0);
+        let res = min + 1;
+        self.locals.push((res, ty));
+        res
+    }
 }
 
 impl Context {
     pub fn reserve_new_block(&mut self, fun: MirFunId) -> Option<BlockId> {
         let func = self.functions.get_mut(&fun)?;
         Some(func.reserve_new_block())
+    }
+
+    pub fn new_local(&mut self, fun: MirFunId, ty: MirType) -> Option<LocalId> {
+        let func = self.functions.get_mut(&fun)?;
+        Some(func.new_local(ty))
     }
 }
 
@@ -115,5 +138,35 @@ impl<'a> Builder<'a> {
             self.current_instruction = instr;
             Ok(())
         }
+    }
+
+    pub fn push_stmt(&mut self, stmt: Statement) {
+        self.statements.insert(self.current_instruction, stmt);
+        self.current_instruction += 1;
+    }
+
+    pub fn build_rval(&mut self, rval: RValue, dest: Option<Place>) -> Option<Place> {
+        let fun = &self.ctx.functions[&self.fun];
+        let ty = rval.get_type(fun, self.ctx)?;
+        let place = dest.unwrap_or_else(|| Place::Local(self.ctx.new_local(self.fun, ty).unwrap()));
+        let stmt = Statement::Assign(place.clone(), rval);
+        self.push_stmt(stmt);
+        Some(place)
+    }
+
+    pub fn build_binop(
+        &mut self,
+        binop: BinOp,
+        lhs: Operand,
+        rhs: Operand,
+        dest: Option<Place>,
+    ) -> Result<Place, BuildError> {
+        let rval = RValue::BinOp(binop, lhs.clone(), rhs.clone());
+        self.build_rval(rval, dest)
+            .ok_or_else(|| BuildError::MismatchedBinOp {
+                op: binop,
+                lhs: lhs,
+                rhs: rhs,
+            })
     }
 }
