@@ -71,6 +71,7 @@ pub enum CastKind {
     Reinterpret,
 }
 
+#[derive(Clone, Copy)]
 pub enum BinOp {
     Add,
     Sub,
@@ -92,17 +93,20 @@ pub enum UnOp {
     Not,
 }
 
+#[derive(Clone)]
 pub enum Place {
     Local(LocalId),
     Projection(Box<Place>, ProjectionKind),
 }
 
+#[derive(Clone, Copy)]
 pub enum ProjectionKind {
     Deref,
     Field(u32),
     Index(LocalId),
 }
 
+#[derive(Clone)]
 pub enum Operand {
     Copy(Place),
     Move(Place),
@@ -110,6 +114,7 @@ pub enum Operand {
     Call { func: MirFunId, args: Vec<Operand> },
 }
 
+#[derive(Clone)]
 pub enum Constant {
     Int(i64, MirType),
     Bool(bool),
@@ -124,7 +129,7 @@ pub struct Function {
     pub return_ty: MirType,
     pub locals: Vec<(LocalId, MirType)>,
     pub blocks: HashMap<BlockId, BasicBlock>,
-    pub entry_block: BlockId,
+    pub entry_block: Option<BlockId>,
     pub reserved: HashSet<BlockId>,
     pub last_reserved: BlockId,
 }

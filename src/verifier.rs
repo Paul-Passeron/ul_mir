@@ -55,7 +55,7 @@ impl Function {
         let mut visited: HashSet<BlockId> = HashSet::new();
         let mut res: HashMap<BlockId, HashSet<LocalId>> = HashMap::new();
         let mut current_vars = HashSet::new();
-        let mut worklist = vec![self.entry_block];
+        let mut worklist = self.entry_block.iter().copied().collect::<Vec<_>>();
         while let Some(block_id) = worklist.pop() {
             if !visited.insert(block_id) {
                 continue;
