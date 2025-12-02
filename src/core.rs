@@ -145,3 +145,14 @@ pub struct Context {
     pub entry_point: Option<MirFunId>,
     pub ptr_size: MirType,
 }
+
+impl Context {
+    pub fn new() -> Self {
+        Self {
+            functions: HashMap::new(),
+            structs: HashMap::new(),
+            entry_point: None,
+            ptr_size: MirType::U64,
+        }
+    }
+}
