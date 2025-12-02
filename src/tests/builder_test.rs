@@ -1,14 +1,14 @@
 use crate::{
     builder::Builder,
     context::FunctionBuilder,
-    core::{Context, MirType},
+    core::{Context, IntType},
 };
 
 #[test]
 fn test_builder_new() {
-    let mut ctx = Context::new();
+    let mut ctx = Context::new(crate::core::PtrSize::_64Bit);
     let fun = FunctionBuilder::new("test_builder_new".into())
-        .push_param(MirType::Bool)
+        .push_param(IntType::Bool.into_mir())
         .build(&mut ctx)
         .unwrap();
 

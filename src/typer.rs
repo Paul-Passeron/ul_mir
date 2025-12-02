@@ -1,6 +1,6 @@
 use crate::core::{
-    BinOp, Constant, Context, Function, LocalId, MirType, Operand, Place, ProjectionKind, RValue,
-    UnOp,
+    ArrayType, BinOp, Constant, Context, Function, IntType, LocalId, MirType, Operand, Place,
+    ProjectionKind, PtrType, RValue, TupleType, UnOp,
 };
 
 impl RValue {
@@ -21,38 +21,42 @@ impl RValue {
                     | BinOp::Mod
                     | BinOp::ShiftRight
                     | BinOp::ShiftLeft => {
-                        if lhs_t == MirType::Bool {
+                        if lhs_t == MirType::Int(IntType::Bool) {
                             return None;
                         }
                         Some(lhs_t)
                     }
                     BinOp::And | BinOp::Or | BinOp::Eq | BinOp::Neq | BinOp::Lt | BinOp::Leq => {
-                        Some(MirType::Bool)
+                        Some(MirType::Int(IntType::Bool))
                     }
                 }
             }
             RValue::UnOp(un_op, operand) => {
                 let operand_ty = operand.get_type(fun, ctx)?;
                 match un_op {
-                    UnOp::Not | UnOp::Minus => operand_ty
-                        .as_integer()
-                        .map_or_else(|| operand_ty.as_ptr(), Some),
+                    UnOp::Not | UnOp::Minus => operand_ty.as_integer().map_or_else(
+                        || operand_ty.as_ptr().cloned().map(|x| x.into_mir()),
+                        |x| Some(x.into_mir()),
+                    ),
                 }
             }
             RValue::Cast(_, _, mir_type) => Some(mir_type.clone()),
-            RValue::Ref(place) => Some(place.get_type(fun, ctx)?.wrap_ptr()),
+            RValue::Ref(place) => Some(place.get_type(fun, ctx)?.wrap_ptr().into_mir()),
             RValue::Len(place) => {
                 if !place.get_type(fun, ctx)?.has_len() {
                     return None;
                 }
-                ctx.ptr_size.as_integer()
+                Some(ctx.ptr_size.corresponding_int().into_mir())
             }
-            RValue::Aggregate(operands) => Some(MirType::Tuple(
-                operands
-                    .iter()
-                    .map(|x| x.get_type(fun, ctx))
-                    .collect::<Option<Vec<_>>>()?,
-            )),
+            RValue::Aggregate(operands) => Some(
+                TupleType::new(
+                    operands
+                        .iter()
+                        .map(|x| x.get_type(fun, ctx))
+                        .collect::<Option<Vec<_>>>()?,
+                )
+                .into_mir(),
+            ),
         }
     }
 }
@@ -83,14 +87,17 @@ impl Place {
             Place::Projection(place, projection_kind) => {
                 let place_ty = place.get_type(fun, ctx)?;
                 match projection_kind {
-                    ProjectionKind::Deref => place_ty.as_ptr(),
+                    ProjectionKind::Deref => place_ty.as_ptr().map(|x| x.clone().into_mir()),
                     ProjectionKind::Field(index) => {
                         let fields = place_ty.fields(ctx)?;
                         fields.get(*index as usize).cloned()
                     }
                     ProjectionKind::Index(local) => {
                         fun.type_of_local(*local)?.as_integer()?;
-                        place_ty.as_array().map_or_else(|| place_ty.as_ptr(), Some)
+                        place_ty.as_array().cloned().map_or_else(
+                            || place_ty.as_ptr().map(|x| x.clone().into_mir()),
+                            |x| Some(x.into_mir()),
+                        )
                     }
                 }
             }
@@ -108,24 +115,16 @@ impl Function {
 }
 
 impl MirType {
-    pub fn as_ptr(&self) -> Option<MirType> {
+    pub fn as_ptr(&self) -> Option<&PtrType> {
         match self {
-            MirType::Ptr(inner) => Some(inner.as_ref().clone()),
+            MirType::Ptr(inner) => Some(inner),
             _ => None,
         }
     }
 
-    pub fn as_integer(&self) -> Option<MirType> {
+    pub fn as_integer(&self) -> Option<IntType> {
         match self {
-            MirType::I8
-            | MirType::I16
-            | MirType::I32
-            | MirType::I64
-            | MirType::U8
-            | MirType::U16
-            | MirType::U32
-            | MirType::U64
-            | MirType::Bool => Some(self.clone()),
+            MirType::Int(x) => Some(*x),
             _ => None,
         }
     }
@@ -136,27 +135,27 @@ impl MirType {
                 let as_struct = ctx.structs.get(struct_id)?;
                 Some(as_struct.fields.iter().map(|x| &x.1).cloned().collect())
             }
-            MirType::Tuple(mir_types) => Some(mir_types.clone()),
+            MirType::Tuple(tuple) => Some(tuple.fields().clone()),
             _ => None,
         }
     }
 
-    pub fn as_array(&self) -> Option<MirType> {
+    pub fn as_array(&self) -> Option<&ArrayType> {
         match self {
-            MirType::Array(ty, _) => Some(ty.as_ref().clone()),
+            MirType::Array(arr_ty) => Some(arr_ty),
             _ => None,
         }
     }
 
     pub fn has_len(&self) -> bool {
         match self {
-            MirType::Array(_, _) => true,
+            MirType::Array(_) => true,
             _ => false,
         }
     }
 
-    pub fn wrap_ptr(&self) -> MirType {
-        MirType::Ptr(Box::new(self.clone()))
+    pub fn wrap_ptr(&self) -> PtrType {
+        PtrType::new(self.clone())
     }
 }
 
@@ -164,9 +163,9 @@ impl Constant {
     pub fn get_type(&self) -> MirType {
         match self {
             Constant::Int(_, ty) => ty.clone(),
-            Constant::Bool(_) => MirType::Bool,
-            Constant::Str(_) => MirType::U8.wrap_ptr(),
-            Constant::Null => MirType::Void.wrap_ptr(),
+            Constant::Bool(_) => IntType::Bool.into_mir(),
+            Constant::Str(_) => IntType::U8.into_mir().wrap_ptr().into_mir(),
+            Constant::Null => MirType::Void.wrap_ptr().into_mir(),
         }
     }
 }

@@ -48,21 +48,108 @@ pub struct Struct {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum MirType {
-    Void,
+pub struct FunctionType {
+    args: Vec<MirType>,
+    ret_ty: Box<MirType>,
+}
+
+impl FunctionType {
+    pub fn into_mir(self) -> MirType {
+        MirType::Function(self)
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum IntType {
     I8,
     I16,
     I32,
-    I64, // Signed primitive types
+    I64,
     U8,
     U16,
     U32,
-    U64, // Unsigned primitive types
+    U64,
     Bool,
-    Ptr(Box<MirType>),
+}
+
+impl IntType {
+    pub fn into_mir(self) -> MirType {
+        MirType::Int(self)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct ArrayType {
+    ty: Box<MirType>,
+    length: u32,
+}
+
+impl ArrayType {
+    pub fn into_mir(self) -> MirType {
+        MirType::Array(self)
+    }
+
+    pub fn new(ty: MirType, length: u32) -> Self {
+        Self {
+            ty: Box::new(ty),
+            length,
+        }
+    }
+
+    pub fn element(&self) -> &MirType {
+        &self.ty
+    }
+
+    pub fn length(&self) -> u32 {
+        self.length
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct TupleType {
+    tys: Vec<MirType>,
+}
+
+impl TupleType {
+    pub fn new(tys: Vec<MirType>) -> Self {
+        Self { tys }
+    }
+
+    pub fn into_mir(self) -> MirType {
+        MirType::Tuple(self)
+    }
+
+    pub fn fields(&self) -> &Vec<MirType> {
+        &self.tys
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct PtrType {
+    pointee: Box<MirType>,
+}
+
+impl PtrType {
+    pub fn new(pointee: MirType) -> Self {
+        Self {
+            pointee: Box::new(pointee),
+        }
+    }
+
+    pub fn into_mir(self) -> MirType {
+        MirType::Ptr(self)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum MirType {
+    Void,
+    Int(IntType),
+    Ptr(PtrType),
+    Array(ArrayType),
+    Function(FunctionType),
+    Tuple(TupleType),
     Struct(StructId),
-    Tuple(Vec<MirType>),
-    Array(Box<MirType>, u32),
 }
 
 pub enum CastKind {
@@ -143,16 +230,35 @@ pub struct Context {
     pub functions: HashMap<MirFunId, Function>,
     pub structs: HashMap<StructId, Struct>,
     pub entry_point: Option<MirFunId>,
-    pub ptr_size: MirType,
+    pub ptr_size: PtrSize,
+}
+
+#[derive(Clone, Copy, Debug)]
+pub enum PtrSize {
+    _8Bit,
+    _16Bit,
+    _32Bit,
+    _64Bit,
+}
+
+impl PtrSize {
+    pub fn corresponding_int(&self) -> IntType {
+        match self {
+            PtrSize::_8Bit => IntType::U8,
+            PtrSize::_16Bit => IntType::U16,
+            PtrSize::_32Bit => IntType::U32,
+            PtrSize::_64Bit => IntType::U64,
+        }
+    }
 }
 
 impl Context {
-    pub fn new() -> Self {
+    pub fn new(ptr_size: PtrSize) -> Self {
         Self {
             functions: HashMap::new(),
             structs: HashMap::new(),
             entry_point: None,
-            ptr_size: MirType::U64,
+            ptr_size,
         }
     }
 }
