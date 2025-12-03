@@ -56,7 +56,7 @@ impl Context {
 }
 
 impl Function<dyn FunctionLinkage> {
-    fn build_lifetime_map(&self) -> HashMap<BlockId, HashSet<LocalId>> {
+    pub fn build_lifetime_map(&self) -> HashMap<BlockId, HashSet<LocalId>> {
         let mut visited: HashSet<BlockId> = HashSet::new();
         let mut res = HashMap::new();
         let mut current_vars = HashSet::new();
@@ -162,7 +162,8 @@ impl Place {
         while let Place::Projection(place, _) = proj {
             proj = place.as_ref();
         }
-        match self {
+
+        match proj {
             Place::Local(id) => *id,
             Place::Projection(_, _) => unreachable!(),
         }
