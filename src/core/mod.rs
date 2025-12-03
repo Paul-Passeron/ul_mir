@@ -1,5 +1,13 @@
 use std::collections::{HashMap, HashSet};
 
+use crate::core::types::{
+    MirType,
+    function::FunctionType,
+    int::IntType,
+    struct_ty::{Struct, StructId},
+};
+
+pub mod types;
 // SSA value
 pub type LocalId = u32;
 
@@ -8,9 +16,6 @@ pub type BlockId = u32;
 
 // Function ID
 pub type MirFunId = u32;
-
-// Struct ID
-pub type StructId = u32;
 
 pub enum Statement {
     Assign(Place, RValue),
@@ -38,139 +43,6 @@ pub enum RValue {
     Ref(Place),
     Len(Place),
     Aggregate(Vec<Operand>),
-}
-
-pub struct Struct {
-    pub name: String,
-    pub fields: Vec<(String, MirType)>,
-    pub packed: bool,
-    pub align: u32,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct FunctionType {
-    args: Vec<MirType>,
-    ret_ty: Box<MirType>,
-    variadic: bool,
-}
-
-impl FunctionType {
-    pub fn into_mir(self) -> MirType {
-        MirType::Function(self)
-    }
-
-    pub fn new(args: Vec<MirType>, ret_ty: MirType, variadic: bool) -> Self {
-        Self {
-            args,
-            ret_ty: Box::new(ret_ty),
-            variadic,
-        }
-    }
-
-    pub fn params(&self) -> &[MirType] {
-        &self.args
-    }
-
-    pub fn ret_ty(&self) -> &MirType {
-        &self.ret_ty
-    }
-
-    pub fn variadic(&self) -> bool {
-        self.variadic
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum IntType {
-    I8,
-    I16,
-    I32,
-    I64,
-    U8,
-    U16,
-    U32,
-    U64,
-    Bool,
-}
-
-impl IntType {
-    pub fn into_mir(self) -> MirType {
-        MirType::Int(self)
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct ArrayType {
-    ty: Box<MirType>,
-    length: u32,
-}
-
-impl ArrayType {
-    pub fn into_mir(self) -> MirType {
-        MirType::Array(self)
-    }
-
-    pub fn new(ty: MirType, length: u32) -> Self {
-        Self {
-            ty: Box::new(ty),
-            length,
-        }
-    }
-
-    pub fn element(&self) -> &MirType {
-        &self.ty
-    }
-
-    pub fn length(&self) -> u32 {
-        self.length
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct TupleType {
-    tys: Vec<MirType>,
-}
-
-impl TupleType {
-    pub fn new(tys: Vec<MirType>) -> Self {
-        Self { tys }
-    }
-
-    pub fn into_mir(self) -> MirType {
-        MirType::Tuple(self)
-    }
-
-    pub fn fields(&self) -> &Vec<MirType> {
-        &self.tys
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct PtrType {
-    pointee: Box<MirType>,
-}
-
-impl PtrType {
-    pub fn new(pointee: MirType) -> Self {
-        Self {
-            pointee: Box::new(pointee),
-        }
-    }
-
-    pub fn into_mir(self) -> MirType {
-        MirType::Ptr(self)
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum MirType {
-    Void,
-    Int(IntType),
-    Ptr(PtrType),
-    Array(ArrayType),
-    Function(FunctionType),
-    Tuple(TupleType),
-    Struct(StructId),
 }
 
 pub enum CastKind {

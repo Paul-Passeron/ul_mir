@@ -1,6 +1,6 @@
 use crate::core::{
-    BasicBlock, BinOp, BlockId, Context, LocalId, MirFunId, MirType, Operand, Place, RValue,
-    Statement, Terminator,
+    BasicBlock, BinOp, BlockId, Context, LocalId, MirFunId, Operand, Place, RValue, Statement,
+    Terminator, types::MirType,
 };
 
 pub struct Builder<'a> {

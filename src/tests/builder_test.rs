@@ -2,7 +2,10 @@ use std::collections::{HashMap, HashSet};
 
 use crate::{
     builder::Builder,
-    core::{Context, FunStatic, Function, FunctionLinkage, FunctionType, MirType},
+    core::{
+        Context, FunStatic, Function, FunctionLinkage,
+        types::{MirType, function::FunctionType},
+    },
 };
 
 #[test]

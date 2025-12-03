@@ -1,6 +1,9 @@
 use std::collections::{HashMap, HashSet};
 
-use crate::core::{FunStatic, Function, FunctionLinkage, FunctionType, MirType};
+use crate::core::{
+    FunStatic, Function, FunctionLinkage,
+    types::{MirType, function::FunctionType},
+};
 
 #[test]
 fn test_function_reserve_new_block() {

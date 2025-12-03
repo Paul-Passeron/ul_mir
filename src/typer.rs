@@ -1,6 +1,7 @@
 use crate::core::{
-    ArrayType, BinOp, Constant, Context, Function, FunctionLinkage, IntType, LocalId, MirType,
-    Operand, Place, ProjectionKind, PtrType, RValue, TupleType, UnOp,
+    BinOp, Constant, Context, Function, FunctionLinkage, LocalId, Operand, Place, ProjectionKind,
+    RValue, UnOp,
+    types::{MirType, int::IntType, tuple::TupleType},
 };
 
 impl RValue {
@@ -113,51 +114,6 @@ impl Function<dyn FunctionLinkage> {
             .iter()
             .find(|x| x.0 == local)
             .map(|x| x.1.clone())
-    }
-}
-
-impl MirType {
-    pub fn as_ptr(&self) -> Option<&PtrType> {
-        match self {
-            MirType::Ptr(inner) => Some(inner),
-            _ => None,
-        }
-    }
-
-    pub fn as_integer(&self) -> Option<IntType> {
-        match self {
-            MirType::Int(x) => Some(*x),
-            _ => None,
-        }
-    }
-
-    pub fn fields(&self, ctx: &Context) -> Option<Vec<MirType>> {
-        match self {
-            MirType::Struct(struct_id) => {
-                let as_struct = ctx.structs.get(struct_id)?;
-                Some(as_struct.fields.iter().map(|x| &x.1).cloned().collect())
-            }
-            MirType::Tuple(tuple) => Some(tuple.fields().clone()),
-            _ => None,
-        }
-    }
-
-    pub fn as_array(&self) -> Option<&ArrayType> {
-        match self {
-            MirType::Array(arr_ty) => Some(arr_ty),
-            _ => None,
-        }
-    }
-
-    pub fn has_len(&self) -> bool {
-        match self {
-            MirType::Array(_) => true,
-            _ => false,
-        }
-    }
-
-    pub fn wrap_ptr(&self) -> PtrType {
-        PtrType::new(self.clone())
     }
 }
 
