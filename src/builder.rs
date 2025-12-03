@@ -11,6 +11,7 @@ pub struct Builder<'a> {
     ctx: &'a mut Context,
 }
 
+#[derive(Debug)]
 pub enum BuildError {
     NoBlockInFun(BlockId, MirFunId),
     InvalidInstructionIndex(usize),
@@ -117,7 +118,7 @@ impl<'a> Builder<'a> {
     }
 
     pub fn position_at(&mut self, instr: usize) -> Result<(), BuildError> {
-        if instr >= self.statements.len() {
+        if instr > self.statements.len() {
             Err(BuildError::InvalidInstructionIndex(instr))
         } else {
             self.current_instruction = instr;
