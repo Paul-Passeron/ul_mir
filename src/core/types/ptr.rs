@@ -15,4 +15,8 @@ impl PtrType {
     pub fn into_mir(self) -> MirType {
         MirType::Ptr(self)
     }
+
+    pub fn pointee(&self) -> &MirType {
+        self.pointee.as_ref()
+    }
 }
