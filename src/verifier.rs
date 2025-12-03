@@ -1,7 +1,8 @@
 use std::collections::{HashMap, HashSet};
 
 use crate::core::{
-    BasicBlock, BlockId, Context, Function, LocalId, MirFunId, Place, Statement, Terminator,
+    BasicBlock, BlockId, Context, Function, FunctionLinkage, LocalId, MirFunId, Place, Statement,
+    Terminator,
 };
 
 impl Context {
@@ -18,8 +19,12 @@ impl Context {
         let mut seen: HashSet<BlockId> = HashSet::new();
         let fun = &self.functions[&fun_id];
         let lifetime_map = fun.build_lifetime_map();
-
-        for (bb_id, bb) in &fun.blocks {
+        let linkage = if let Some(linkage) = fun.linkage.get_linkage() {
+            linkage
+        } else {
+            return true;
+        };
+        for (bb_id, bb) in &linkage.blocks {
             if !seen.insert(*bb_id) {
                 continue;
             }
@@ -50,18 +55,23 @@ impl Context {
     }
 }
 
-impl Function {
+impl Function<dyn FunctionLinkage> {
     fn build_lifetime_map(&self) -> HashMap<BlockId, HashSet<LocalId>> {
         let mut visited: HashSet<BlockId> = HashSet::new();
-        let mut res: HashMap<BlockId, HashSet<LocalId>> = HashMap::new();
+        let mut res = HashMap::new();
         let mut current_vars = HashSet::new();
-        let mut worklist = self.entry_block.iter().copied().collect::<Vec<_>>();
+        let linkage = if let Some(linkage) = self.linkage.get_linkage() {
+            linkage
+        } else {
+            return res;
+        };
+        let mut worklist = linkage.entry_block.iter().copied().collect::<Vec<_>>();
         while let Some(block_id) = worklist.pop() {
             if !visited.insert(block_id) {
                 continue;
             }
             res.insert(block_id, current_vars.clone());
-            let block = &self.blocks[&block_id];
+            let block = &linkage.blocks[&block_id];
             block.get_surviving_vars(&mut current_vars);
             match &block.terminator {
                 Terminator::Return(_) => (),
@@ -78,9 +88,14 @@ impl Function {
     }
 
     pub fn get_predecessors(&self) -> HashMap<BlockId, HashSet<BlockId>> {
+        let linkage = if let Some(linkage) = self.linkage.get_linkage() {
+            linkage
+        } else {
+            return HashMap::new();
+        };
         let mut predecessors: HashMap<BlockId, HashSet<BlockId>> =
-            HashMap::from_iter(self.blocks.iter().map(|x| (*x.0, HashSet::new())));
-        for (block_id, block) in &self.blocks {
+            HashMap::from_iter(linkage.blocks.iter().map(|x| (*x.0, HashSet::new())));
+        for (block_id, block) in &linkage.blocks {
             match &block.terminator {
                 Terminator::Return(_) => (),
                 Terminator::Goto(id) => {

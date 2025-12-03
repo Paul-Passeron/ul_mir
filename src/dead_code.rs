@@ -1,21 +1,21 @@
 use std::collections::HashSet;
 
-use crate::core::{BlockId, Function, Terminator};
+use crate::core::{BlockId, Function, FunctionLinkage, Terminator};
 
-impl Function {
-    pub fn get_reachable_blocks(&self) -> HashSet<BlockId> {
+impl Function<dyn FunctionLinkage> {
+    pub fn get_reachable_blocks(&self) -> Option<HashSet<BlockId>> {
         let mut res = HashSet::new();
-        let mut worklist = if let Some(entry) = self.entry_block {
+        let mut worklist = if let Some(entry) = self.linkage.get_linkage()?.entry_block {
             res.insert(entry);
             vec![entry]
         } else {
-            return res;
+            return Some(res);
         };
         while let Some(bb) = worklist.pop() {
             if !res.insert(bb) {
                 continue;
             }
-            let block = &self.blocks[&bb];
+            let block = &self.linkage.get_linkage()?.blocks[&bb];
             match &block.terminator {
                 Terminator::Return(_) => (),
                 Terminator::Goto(next) => {
@@ -32,6 +32,6 @@ impl Function {
                 }
             }
         }
-        res
+        Some(res)
     }
 }

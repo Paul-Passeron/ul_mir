@@ -1,18 +1,28 @@
+use std::collections::{HashMap, HashSet};
+
 use crate::{
     builder::Builder,
-    context::FunctionBuilder,
-    core::{Context, IntType},
+    core::{Context, FunStatic, Function, FunctionLinkage, FunctionType, MirType},
 };
 
 #[test]
 fn test_builder_new() {
     let mut ctx = Context::new(crate::core::PtrSize::_64Bit);
-    let fun = FunctionBuilder::new("test_builder_new".into())
-        .push_param(IntType::Bool.into_mir())
-        .build(&mut ctx)
-        .unwrap();
+    let fun: Function<dyn FunctionLinkage> = Function {
+        name: "my_function".to_string(),
+        ty: FunctionType::new(vec![], MirType::Void, false),
+        linkage: Box::new(FunStatic {
+            params: vec![],
+            blocks: HashMap::new(),
+            entry_block: None,
+            reserved: HashSet::new(),
+            last_reserved: 0,
+            locals: vec![],
+        }),
+    };
+    ctx.functions.insert(0, fun);
 
-    let entry_block = ctx.reserve_new_block(fun).unwrap();
+    let entry_block = ctx.reserve_new_block(0).unwrap();
 
-    let _ = Builder::new(fun, entry_block, 0, &mut ctx);
+    let _ = Builder::new(0, entry_block, 0, &mut ctx);
 }

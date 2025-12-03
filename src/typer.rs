@@ -1,10 +1,10 @@
 use crate::core::{
-    ArrayType, BinOp, Constant, Context, Function, IntType, LocalId, MirType, Operand, Place,
-    ProjectionKind, PtrType, RValue, TupleType, UnOp,
+    ArrayType, BinOp, Constant, Context, Function, FunctionLinkage, IntType, LocalId, MirType,
+    Operand, Place, ProjectionKind, PtrType, RValue, TupleType, UnOp,
 };
 
 impl RValue {
-    pub fn get_type(&self, fun: &Function, ctx: &Context) -> Option<MirType> {
+    pub fn get_type(&self, fun: &Function<dyn FunctionLinkage>, ctx: &Context) -> Option<MirType> {
         match self {
             RValue::Use(operand) => operand.get_type(fun, ctx),
             RValue::BinOp(bin_op, lhs, rhs) => {
@@ -62,26 +62,26 @@ impl RValue {
 }
 
 impl Operand {
-    pub fn get_type(&self, fun: &Function, ctx: &Context) -> Option<MirType> {
+    pub fn get_type(&self, fun: &Function<dyn FunctionLinkage>, ctx: &Context) -> Option<MirType> {
         match self {
             Operand::Copy(place) | Operand::Move(place) => place.get_type(fun, ctx),
             Operand::Constant(constant) => Some(constant.get_type()),
             Operand::Call { func, args } => {
-                let fun = ctx.functions.get(func)?;
-                if args.len() < fun.params.len() {
+                let fun = &ctx.functions.get(func)?.ty;
+                if args.len() < fun.params().len() {
                     return None;
                 }
-                if !fun.variadic && args.len() != fun.params.len() {
+                if !fun.variadic() && args.len() != fun.params().len() {
                     return None;
                 }
-                Some(fun.return_ty.clone())
+                Some(fun.ret_ty().clone())
             }
         }
     }
 }
 
 impl Place {
-    pub fn get_type(&self, fun: &Function, ctx: &Context) -> Option<MirType> {
+    pub fn get_type(&self, fun: &Function<dyn FunctionLinkage>, ctx: &Context) -> Option<MirType> {
         match self {
             Place::Local(id) => fun.type_of_local(*id),
             Place::Projection(place, projection_kind) => {
@@ -105,9 +105,11 @@ impl Place {
     }
 }
 
-impl Function {
+impl Function<dyn FunctionLinkage> {
     pub fn type_of_local(&self, local: LocalId) -> Option<MirType> {
-        self.locals
+        self.linkage
+            .get_linkage()?
+            .locals
             .iter()
             .find(|x| x.0 == local)
             .map(|x| x.1.clone())

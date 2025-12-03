@@ -51,11 +51,32 @@ pub struct Struct {
 pub struct FunctionType {
     args: Vec<MirType>,
     ret_ty: Box<MirType>,
+    variadic: bool,
 }
 
 impl FunctionType {
     pub fn into_mir(self) -> MirType {
         MirType::Function(self)
+    }
+
+    pub fn new(args: Vec<MirType>, ret_ty: MirType, variadic: bool) -> Self {
+        Self {
+            args,
+            ret_ty: Box::new(ret_ty),
+            variadic,
+        }
+    }
+
+    pub fn params(&self) -> &[MirType] {
+        &self.args
+    }
+
+    pub fn ret_ty(&self) -> &MirType {
+        &self.ret_ty
+    }
+
+    pub fn variadic(&self) -> bool {
+        self.variadic
     }
 }
 
@@ -209,16 +230,72 @@ pub enum Constant {
     Null,
 }
 
-pub struct Function {
-    pub name: String,
-    pub params: Vec<(LocalId, MirType)>,
-    pub variadic: bool,
-    pub return_ty: MirType,
-    pub locals: Vec<(LocalId, MirType)>,
+pub struct FunExtern;
+pub struct FunStatic {
+    pub params: Vec<LocalId>,
     pub blocks: HashMap<BlockId, BasicBlock>,
     pub entry_block: Option<BlockId>,
     pub reserved: HashSet<BlockId>,
     pub last_reserved: BlockId,
+    pub locals: Vec<(LocalId, MirType)>,
+}
+
+pub trait FunctionLinkage {
+    fn get_linkage(&self) -> Option<&FunStatic>;
+    fn get_linkage_mut(&mut self) -> Option<&mut FunStatic>;
+}
+
+impl FunctionLinkage for FunExtern {
+    fn get_linkage(&self) -> Option<&FunStatic> {
+        None
+    }
+
+    fn get_linkage_mut(&mut self) -> Option<&mut FunStatic> {
+        None
+    }
+}
+
+impl Function<dyn FunctionLinkage> {
+    pub fn reserve_new_block(&mut self) -> Option<BlockId> {
+        let linkage = self.linkage.get_linkage_mut()?;
+        let res = linkage.last_reserved;
+        linkage.last_reserved += 1;
+        linkage.reserved.insert(res);
+        Some(res)
+    }
+
+    pub fn new_local(&mut self, ty: MirType) -> Option<LocalId> {
+        let min = self
+            .linkage
+            .get_linkage()?
+            .locals
+            .iter()
+            .map(|x| x.0)
+            .max_by(u32::cmp)
+            .unwrap_or(0);
+        let res = min + 1;
+        self.linkage.get_linkage_mut()?.locals.push((res, ty));
+        Some(res)
+    }
+}
+
+impl FunctionLinkage for FunStatic {
+    fn get_linkage(&self) -> Option<&FunStatic> {
+        Some(self)
+    }
+
+    fn get_linkage_mut(&mut self) -> Option<&mut FunStatic> {
+        Some(self)
+    }
+}
+
+pub struct Function<T>
+where
+    T: FunctionLinkage + ?Sized,
+{
+    pub name: String,
+    pub ty: FunctionType,
+    pub linkage: Box<T>,
 }
 
 pub struct BasicBlock {
@@ -227,7 +304,7 @@ pub struct BasicBlock {
 }
 
 pub struct Context {
-    pub functions: HashMap<MirFunId, Function>,
+    pub functions: HashMap<MirFunId, Function<dyn FunctionLinkage>>,
     pub structs: HashMap<StructId, Struct>,
     pub entry_point: Option<MirFunId>,
     pub ptr_size: PtrSize,

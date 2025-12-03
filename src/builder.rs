@@ -1,6 +1,6 @@
 use crate::core::{
-    BasicBlock, BinOp, BlockId, Context, Function, LocalId, MirFunId, MirType, Operand, Place,
-    RValue, Statement, Terminator,
+    BasicBlock, BinOp, BlockId, Context, LocalId, MirFunId, MirType, Operand, Place, RValue,
+    Statement, Terminator,
 };
 
 pub struct Builder<'a> {
@@ -21,36 +21,15 @@ pub enum BuildError {
     },
 }
 
-impl Function {
-    pub fn reserve_new_block(&mut self) -> BlockId {
-        let res = self.last_reserved;
-        self.last_reserved += 1;
-        self.reserved.insert(res);
-        res
-    }
-
-    pub fn new_local(&mut self, ty: MirType) -> LocalId {
-        let min = self
-            .locals
-            .iter()
-            .map(|x| x.0)
-            .max_by(u32::cmp)
-            .unwrap_or(0);
-        let res = min + 1;
-        self.locals.push((res, ty));
-        res
-    }
-}
-
 impl Context {
     pub fn reserve_new_block(&mut self, fun: MirFunId) -> Option<BlockId> {
         let func = self.functions.get_mut(&fun)?;
-        Some(func.reserve_new_block())
+        func.reserve_new_block()
     }
 
     pub fn new_local(&mut self, fun: MirFunId, ty: MirType) -> Option<LocalId> {
         let func = self.functions.get_mut(&fun)?;
-        Some(func.new_local(ty))
+        func.new_local(ty)
     }
 }
 
@@ -89,6 +68,9 @@ impl<'a> Builder<'a> {
             .functions
             .get_mut(&self.fun)
             .unwrap()
+            .linkage
+            .get_linkage_mut()
+            .unwrap()
             .blocks
             .insert(self.current_block, bl);
         self.current_block
@@ -96,6 +78,9 @@ impl<'a> Builder<'a> {
 
     fn check_destination(&self, destination: BlockId) -> Result<(), BuildError> {
         if !self.ctx.functions[&self.fun]
+            .linkage
+            .get_linkage()
+            .unwrap()
             .reserved
             .contains(&destination)
         {
