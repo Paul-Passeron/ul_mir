@@ -88,16 +88,16 @@ impl Place {
             Place::Projection(place, projection_kind) => {
                 let place_ty = place.get_type(fun, ctx)?;
                 match projection_kind {
-                    ProjectionKind::Deref => place_ty.as_ptr().map(|x| x.clone().into_mir()),
+                    ProjectionKind::Deref => place_ty.as_ptr().map(|x| x.pointee().clone()),
                     ProjectionKind::Field(index) => {
                         let fields = place_ty.fields(ctx)?;
                         fields.get(*index as usize).cloned()
                     }
                     ProjectionKind::Index(local) => {
                         fun.type_of_local(*local)?.as_integer()?;
-                        place_ty.as_array().cloned().map_or_else(
-                            || place_ty.as_ptr().map(|x| x.clone().into_mir()),
-                            |x| Some(x.into_mir()),
+                        place_ty.as_array().map_or_else(
+                            || place_ty.as_ptr().map(|x| x.pointee().clone()),
+                            |x| Some(x.pointee().clone()),
                         )
                     }
                 }
