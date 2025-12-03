@@ -6,7 +6,6 @@ impl Function<dyn FunctionLinkage> {
     pub fn get_reachable_blocks(&self) -> Option<HashSet<BlockId>> {
         let mut res = HashSet::new();
         let mut worklist = if let Some(entry) = self.linkage.get_linkage()?.entry_block {
-            res.insert(entry);
             vec![entry]
         } else {
             return Some(res);
@@ -19,15 +18,12 @@ impl Function<dyn FunctionLinkage> {
             match &block.terminator {
                 Terminator::Return(_) => (),
                 Terminator::Goto(next) => {
-                    res.insert(*next);
                     worklist.push(*next);
                 }
                 Terminator::Iff {
                     then_dst, else_dst, ..
                 } => {
-                    res.insert(*then_dst);
                     worklist.push(*then_dst);
-                    res.insert(*else_dst);
                     worklist.push(*else_dst);
                 }
             }
