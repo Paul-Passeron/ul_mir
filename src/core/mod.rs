@@ -51,7 +51,7 @@ pub enum CastKind {
     Reinterpret,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub enum BinOp {
     Add,
     Sub,
@@ -73,20 +73,20 @@ pub enum UnOp {
     Not,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Place {
     Local(LocalId),
     Projection(Box<Place>, ProjectionKind),
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ProjectionKind {
     Deref,
     Field(u32),
     Index(LocalId),
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum Operand {
     Copy(Place),
     Move(Place),
@@ -94,7 +94,7 @@ pub enum Operand {
     Call { func: MirFunId, args: Vec<Operand> },
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum Constant {
     Int(i64, MirType),
     Bool(bool),
