@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use crate::core::{BlockId, Function, FunctionLinkage, Terminator};
+use crate::core::ctrl_flow::{BlockId, Function, FunctionLinkage, Terminator};
 
 impl Function<dyn FunctionLinkage> {
     pub fn get_reachable_blocks(&self) -> Option<HashSet<BlockId>> {

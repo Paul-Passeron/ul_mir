@@ -1,7 +1,9 @@
 use std::collections::{HashMap, HashSet};
 
 use crate::core::{
-    BasicBlock, Constant, FunStatic, Function, FunctionLinkage, Operand, Terminator,
+    ctrl_flow::{
+        BasicBlock, Constant, FunExtern, FunStatic, Function, FunctionLinkage, Operand, Terminator,
+    },
     types::{MirType, function::FunctionType, int::IntType},
 };
 
@@ -584,7 +586,7 @@ fn test_get_reachable_blocks_extern_function() {
     let fun: Function<dyn FunctionLinkage> = Function {
         name: "extern_func".to_string(),
         ty: FunctionType::new(vec![MirType::Int(IntType::I32)], MirType::Void, false),
-        linkage: Box::new(crate::core::FunExtern),
+        linkage: Box::new(FunExtern),
     };
 
     let reachable = fun.get_reachable_blocks();

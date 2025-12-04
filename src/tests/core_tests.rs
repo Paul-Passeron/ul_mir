@@ -1,7 +1,7 @@
 use std::collections::{HashMap, HashSet};
 
 use crate::core::{
-    FunStatic, Function, FunctionLinkage,
+    ctrl_flow::{FunStatic, Function, FunctionLinkage},
     types::{MirType, function::FunctionType},
 };
 

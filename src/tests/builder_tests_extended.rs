@@ -3,8 +3,11 @@ use std::collections::{HashMap, HashSet};
 use crate::{
     builder::{BuildError, Builder},
     core::{
-        BinOp, Constant, Context, FunStatic, Function, FunctionLinkage, Operand, Place, PtrSize,
-        RValue, Statement, UnOp,
+        Context, PtrSize,
+        ctrl_flow::{
+            BinOp, Constant, FunStatic, Function, FunctionLinkage, Operand, Place, RValue,
+            Statement, UnOp,
+        },
         types::{MirType, function::FunctionType, int::IntType},
     },
 };

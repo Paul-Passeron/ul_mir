@@ -1,8 +1,11 @@
 use std::collections::{HashMap, HashSet};
 
 use crate::core::{
-    BinOp, Constant, Context, FunStatic, Function, FunctionLinkage, Operand, Place, ProjectionKind,
-    PtrSize, RValue, UnOp,
+    Context, PtrSize,
+    ctrl_flow::{
+        BinOp, CastKind, Constant, FunExtern, FunStatic, Function, FunctionLinkage, Operand, Place,
+        ProjectionKind, RValue, UnOp,
+    },
     types::{
         MirType,
         function::FunctionType,
@@ -184,7 +187,7 @@ fn test_operand_get_type_call_exact_args() {
     let target_fun: Function<dyn FunctionLinkage> = Function {
         name: "target".to_string(),
         ty: func_ty,
-        linkage: Box::new(crate::core::FunExtern),
+        linkage: Box::new(FunExtern),
     };
     ctx.functions.insert(1, target_fun);
 
@@ -218,7 +221,7 @@ fn test_operand_get_type_call_variadic() {
     let target_fun: Function<dyn FunctionLinkage> = Function {
         name: "variadic".to_string(),
         ty: func_ty,
-        linkage: Box::new(crate::core::FunExtern),
+        linkage: Box::new(FunExtern),
     };
     ctx.functions.insert(1, target_fun);
 
@@ -252,7 +255,7 @@ fn test_operand_get_type_call_too_few_args() {
     let target_fun: Function<dyn FunctionLinkage> = Function {
         name: "target".to_string(),
         ty: func_ty,
-        linkage: Box::new(crate::core::FunExtern),
+        linkage: Box::new(FunExtern),
     };
     ctx.functions.insert(1, target_fun);
 
@@ -396,8 +399,6 @@ fn test_rvalue_unop_not_integer() {
 
 #[test]
 fn test_rvalue_cast() {
-    use crate::core::CastKind;
-
     let locals = vec![(0, MirType::Int(IntType::I32))];
     let fun = create_test_function(locals);
     let ctx = Context::new(PtrSize::_64Bit);

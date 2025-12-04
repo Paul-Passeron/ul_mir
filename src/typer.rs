@@ -1,6 +1,9 @@
 use crate::core::{
-    BinOp, Constant, Context, Function, FunctionLinkage, LocalId, Operand, Place, ProjectionKind,
-    RValue, UnOp,
+    Context,
+    ctrl_flow::{
+        BinOp, Constant, Function, FunctionLinkage, LocalId, Operand, Place, ProjectionKind,
+        RValue, UnOp,
+    },
     types::{MirType, int::IntType, tuple::TupleType},
 };
 

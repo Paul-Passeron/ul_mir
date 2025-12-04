@@ -1,8 +1,11 @@
 use std::collections::{HashMap, HashSet};
 
 use crate::core::{
-    BasicBlock, BlockId, Context, Constant, FunStatic, Function, FunctionLinkage, LocalId,
-    Operand, Place, PtrSize, RValue, Statement, Terminator,
+    Context, PtrSize,
+    ctrl_flow::{
+        BasicBlock, BlockId, Constant, FunExtern, FunStatic, Function, FunctionLinkage, LocalId,
+        Operand, Place, ProjectionKind, RValue, Statement, Terminator,
+    },
     types::{MirType, function::FunctionType, int::IntType},
 };
 
@@ -133,7 +136,10 @@ fn test_build_lifetime_map_simple() {
                 Statement::StorageLive(0),
                 Statement::Assign(
                     Place::Local(0),
-                    RValue::Use(Operand::Constant(Constant::Int(42, MirType::Int(IntType::I32)))),
+                    RValue::Use(Operand::Constant(Constant::Int(
+                        42,
+                        MirType::Int(IntType::I32),
+                    ))),
                 ),
                 Statement::StorageDead(0),
             ],
@@ -219,7 +225,10 @@ fn test_build_lifetime_map_linear_chain() {
         BasicBlock {
             statements: vec![Statement::Assign(
                 Place::Local(0),
-                RValue::Use(Operand::Constant(Constant::Int(42, MirType::Int(IntType::I32)))),
+                RValue::Use(Operand::Constant(Constant::Int(
+                    42,
+                    MirType::Int(IntType::I32),
+                ))),
             )],
             terminator: Terminator::Goto(2),
         },
@@ -250,7 +259,10 @@ fn test_check_lifetime_valid_storage() {
             Statement::StorageLive(0),
             Statement::Assign(
                 Place::Local(0),
-                RValue::Use(Operand::Constant(Constant::Int(42, MirType::Int(IntType::I32)))),
+                RValue::Use(Operand::Constant(Constant::Int(
+                    42,
+                    MirType::Int(IntType::I32),
+                ))),
             ),
             Statement::StorageDead(0),
         ],
@@ -266,7 +278,10 @@ fn test_check_lifetime_use_before_storage_live() {
     let block = BasicBlock {
         statements: vec![Statement::Assign(
             Place::Local(0),
-            RValue::Use(Operand::Constant(Constant::Int(42, MirType::Int(IntType::I32)))),
+            RValue::Use(Operand::Constant(Constant::Int(
+                42,
+                MirType::Int(IntType::I32),
+            ))),
         )],
         terminator: Terminator::Return(None),
     };
@@ -294,7 +309,10 @@ fn test_check_lifetime_use_after_storage_dead() {
             Statement::StorageDead(0),
             Statement::Assign(
                 Place::Local(0),
-                RValue::Use(Operand::Constant(Constant::Int(42, MirType::Int(IntType::I32)))),
+                RValue::Use(Operand::Constant(Constant::Int(
+                    42,
+                    MirType::Int(IntType::I32),
+                ))),
             ),
         ],
         terminator: Terminator::Return(None),
@@ -320,7 +338,10 @@ fn test_check_lifetime_with_live_set() {
     let block = BasicBlock {
         statements: vec![Statement::Assign(
             Place::Local(0),
-            RValue::Use(Operand::Constant(Constant::Int(42, MirType::Int(IntType::I32)))),
+            RValue::Use(Operand::Constant(Constant::Int(
+                42,
+                MirType::Int(IntType::I32),
+            ))),
         )],
         terminator: Terminator::Return(None),
     };
@@ -513,7 +534,10 @@ fn test_get_surviving_vars_ignores_assign() {
             Statement::StorageLive(0),
             Statement::Assign(
                 Place::Local(0),
-                RValue::Use(Operand::Constant(Constant::Int(42, MirType::Int(IntType::I32)))),
+                RValue::Use(Operand::Constant(Constant::Int(
+                    42,
+                    MirType::Int(IntType::I32),
+                ))),
             ),
         ],
         terminator: Terminator::Return(None),
@@ -540,8 +564,8 @@ fn test_get_surviving_vars_with_initial_set() {
     block.get_surviving_vars(&mut set);
 
     assert!(!set.contains(&0)); // Was removed
-    assert!(set.contains(&1));  // Was added
-    assert!(set.contains(&2));  // Was preserved
+    assert!(set.contains(&1)); // Was added
+    assert!(set.contains(&2)); // Was preserved
 }
 
 // Place unprojected local tests
@@ -554,8 +578,6 @@ fn test_place_get_unprojected_local_simple() {
 
 #[test]
 fn test_place_get_unprojected_local_nested_projection() {
-    use crate::core::ProjectionKind;
-
     let place = Place::Projection(
         Box::new(Place::Projection(
             Box::new(Place::Projection(
@@ -572,8 +594,6 @@ fn test_place_get_unprojected_local_nested_projection() {
 
 #[test]
 fn test_place_get_unprojected_local_single_projection() {
-    use crate::core::ProjectionKind;
-
     let place = Place::Projection(Box::new(Place::Local(7)), ProjectionKind::Field(2));
 
     assert_eq!(place.get_unprojected_local(), 7);
@@ -588,7 +608,7 @@ fn test_verify_extern_function() {
     let fun: Function<dyn FunctionLinkage> = Function {
         name: "extern_func".to_string(),
         ty: FunctionType::new(vec![MirType::Int(IntType::I32)], MirType::Void, false),
-        linkage: Box::new(crate::core::FunExtern),
+        linkage: Box::new(FunExtern),
     };
 
     ctx.functions.insert(0, fun);
@@ -641,7 +661,10 @@ fn test_nop_statements_dont_affect_lifetime() {
             Statement::Nop,
             Statement::Assign(
                 Place::Local(0),
-                RValue::Use(Operand::Constant(Constant::Int(1, MirType::Int(IntType::I32)))),
+                RValue::Use(Operand::Constant(Constant::Int(
+                    1,
+                    MirType::Int(IntType::I32),
+                ))),
             ),
             Statement::Nop,
             Statement::StorageDead(0),

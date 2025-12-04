@@ -3,7 +3,8 @@ use std::collections::{HashMap, HashSet};
 use crate::{
     builder::Builder,
     core::{
-        Context, FunStatic, Function, FunctionLinkage,
+        Context,
+        ctrl_flow::{FunStatic, Function, FunctionLinkage},
         types::{MirType, function::FunctionType},
     },
 };
