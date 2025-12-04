@@ -2,7 +2,7 @@ use crate::core::types::MirType;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct FunctionType {
-    args: Vec<MirType>,
+    params: Vec<MirType>,
     ret_ty: Box<MirType>,
     variadic: bool,
 }
@@ -12,16 +12,16 @@ impl FunctionType {
         MirType::Function(self)
     }
 
-    pub fn new(args: Vec<MirType>, ret_ty: MirType, variadic: bool) -> Self {
+    pub fn new(params: Vec<MirType>, ret_ty: MirType, variadic: bool) -> Self {
         Self {
-            args,
+            params,
             ret_ty: Box::new(ret_ty),
             variadic,
         }
     }
 
     pub fn params(&self) -> &[MirType] {
-        &self.args
+        &self.params
     }
 
     pub fn ret_ty(&self) -> &MirType {
@@ -30,5 +30,17 @@ impl FunctionType {
 
     pub fn variadic(&self) -> bool {
         self.variadic
+    }
+
+    pub fn set_variadic(&mut self, v: bool) {
+        self.variadic = v;
+    }
+
+    pub fn set_return_ty(&mut self, ty: MirType) {
+        *self.ret_ty = ty;
+    }
+
+    pub fn set_params(&mut self, params: Vec<MirType>) {
+        self.params = params
     }
 }

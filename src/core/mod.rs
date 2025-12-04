@@ -47,4 +47,10 @@ impl Context {
             ptr_size,
         }
     }
+
+    pub fn add_function(&mut self, fun: Function) -> MirFunId {
+        let new_id = self.functions.len() as MirFunId;
+        self.functions.insert(new_id, fun);
+        new_id
+    }
 }

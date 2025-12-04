@@ -1,6 +1,5 @@
 #![feature(random)]
 
-pub mod context;
 pub mod core;
 pub mod dead_code;
 pub mod typer;

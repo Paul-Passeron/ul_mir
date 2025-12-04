@@ -106,7 +106,7 @@ impl BlockBuilder {
         self
     }
 
-    pub fn assign(&mut self, place: Place, rvalue: RValue, ctx: &mut Context) -> Option<&mut Self> {
+    pub fn assign(&mut self, place: Place, rvalue: RValue, ctx: &Context) -> Option<&mut Self> {
         let place_ty = place.get_type(&ctx.functions[&self.fun], ctx)?;
         let rvalue_ty = rvalue.get_type(&ctx.functions[&self.fun], ctx)?;
         if place_ty != rvalue_ty {
@@ -121,7 +121,7 @@ impl BlockBuilder {
         lhs: Operand,
         rhs: Operand,
         place: Place,
-        ctx: &mut Context,
+        ctx: &Context,
     ) -> Result<&mut Self, BlockBuildError> {
         let rval = RValue::BinOp(binop, lhs.clone(), rhs.clone());
         self.assign(place, rval, ctx)
