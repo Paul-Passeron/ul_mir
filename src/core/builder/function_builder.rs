@@ -116,7 +116,7 @@ impl DefinedFunctionBuilder {
         next_id
     }
 
-    pub fn build_block(&self, block_id: BlockId) -> BlockBuilder {
+    pub fn build_block(&mut self, block_id: BlockId) -> BlockBuilder {
         BlockBuilder::new(self.id, block_id)
     }
 

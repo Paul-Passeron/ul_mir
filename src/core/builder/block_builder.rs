@@ -101,12 +101,12 @@ impl BlockBuilder {
         self.finish(Terminator::Return(op), ctx)
     }
 
-    pub fn stmt(&mut self, stmt: Statement) -> &mut Self {
+    pub fn stmt(mut self, stmt: Statement) -> Self {
         self.statements.push(stmt);
         self
     }
 
-    pub fn assign(&mut self, place: Place, rvalue: RValue, ctx: &Context) -> Option<&mut Self> {
+    pub fn assign(self, place: Place, rvalue: RValue, ctx: &Context) -> Option<Self> {
         let place_ty = place.get_type(&ctx.functions[&self.fun], ctx)?;
         let rvalue_ty = rvalue.get_type(&ctx.functions[&self.fun], ctx)?;
         if place_ty != rvalue_ty {
@@ -116,13 +116,13 @@ impl BlockBuilder {
     }
 
     pub fn binop(
-        &mut self,
+        self,
         binop: BinOp,
         lhs: Operand,
         rhs: Operand,
         place: Place,
         ctx: &Context,
-    ) -> Result<&mut Self, BlockBuildError> {
+    ) -> Result<Self, BlockBuildError> {
         let rval = RValue::BinOp(binop, lhs.clone(), rhs.clone());
         self.assign(place, rval, ctx)
             .ok_or_else(|| BlockBuildError::MismatchedBinOp {

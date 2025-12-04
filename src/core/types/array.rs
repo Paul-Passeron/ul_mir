@@ -14,6 +14,10 @@ impl ArrayType {
     pub fn pointee(&self) -> &MirType {
         self.ty.as_ref()
     }
+
+    pub fn length(&self) -> u32 {
+        self.length
+    }
 }
 
 impl Into<MirType> for ArrayType {

@@ -8,3 +8,4 @@ name = "ul_test"
 path = "src/main.rs"
 
 [dependencies]
+escape_string = "0.1.2"

@@ -1,4 +1,7 @@
-use crate::core::{ctrl_flow::function::MirFunId, types::MirType};
+use crate::core::{
+    ctrl_flow::function::MirFunId,
+    types::{MirType, int::IntType},
+};
 
 pub mod basic_blocks;
 pub mod function;
@@ -71,7 +74,7 @@ pub enum Operand {
 
 #[derive(Clone, Debug)]
 pub enum Constant {
-    Int(i64, MirType),
+    Int(i64, IntType),
     Bool(bool),
     Str(String),
     Null,

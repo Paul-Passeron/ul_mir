@@ -121,7 +121,7 @@ impl Function {
 impl Constant {
     pub fn get_type(&self) -> MirType {
         match self {
-            Constant::Int(_, ty) => ty.clone(),
+            Constant::Int(_, ty) => ty.into_mir(),
             Constant::Bool(_) => IntType::Bool.into_mir(),
             Constant::Str(_) => IntType::U8.into_mir().wrap_ptr().into_mir(),
             Constant::Null => MirType::Void.wrap_ptr().into_mir(),
