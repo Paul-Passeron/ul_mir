@@ -1,0 +1,14 @@
+digraph "fib" {
+  labeljust=l
+  node [shape=box, style=filled, fillcolor=lightblue, fontname="monospace"];
+  edge [fontname="monospace"];
+  rankdir=TB;
+  bb0 [label="bb0\l*%2 = 1\l*%3 = 1\l*%1 = 2\l---\ngoto bb1" style=filled, fillcolor=lightgreen];
+  bb1 [label="bb1\l%4 = (copy(*%1) < copy(%0))\l---\nbr copy(%4)"];
+  bb2 [label="bb2\l*%2 = (copy(*%2) + copy(*%3))\l*%3 = (copy(*%2) - copy(*%3))\l*%1 = (copy(*%1) + 1)\l---\ngoto bb1"];
+  bb3 [label="bb3\l---\nret copy(*%2)"];
+  bb0 -> bb1;
+  bb1 -> bb2 [label="true"];
+  bb1 -> bb3 [label="false"];
+  bb2 -> bb1;
+}
