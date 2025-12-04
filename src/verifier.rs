@@ -2,7 +2,11 @@ use std::collections::{HashMap, HashSet};
 
 use crate::core::{
     Context,
-    ctrl_flow::{BasicBlock, BlockId, Function, LocalId, MirFunId, Place, Statement, Terminator},
+    ctrl_flow::{
+        BlockId, LocalId, Place,
+        basic_blocks::{BasicBlock, Statement, Terminator},
+        function::{Function, MirFunId},
+    },
 };
 
 impl Context {

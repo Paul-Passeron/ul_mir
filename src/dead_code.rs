@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use crate::core::ctrl_flow::{BlockId, Function, Terminator};
+use crate::core::ctrl_flow::{BlockId, basic_blocks::Terminator, function::Function};
 
 impl Function {
     pub fn get_reachable_blocks(&self) -> Option<HashSet<BlockId>> {

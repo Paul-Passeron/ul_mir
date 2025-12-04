@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::core::{
-    ctrl_flow::{Function, MirFunId},
+    ctrl_flow::function::{Function, MirFunId},
     types::{
         int::IntType,
         struct_ty::{Struct, StructId},

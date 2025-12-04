@@ -1,6 +1,8 @@
+use crate::core::ctrl_flow::LocalId;
+use crate::core::ctrl_flow::function::Function;
 use crate::core::{
     Context,
-    ctrl_flow::{BinOp, Constant, Function, LocalId, Operand, Place, ProjectionKind, RValue, UnOp},
+    ctrl_flow::{BinOp, Constant, Operand, Place, ProjectionKind, RValue, UnOp},
     types::{MirType, int::IntType, tuple::TupleType},
 };
 

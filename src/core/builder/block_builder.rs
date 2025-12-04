@@ -1,10 +1,10 @@
 use crate::core::{
     Context,
     ctrl_flow::{
-        BasicBlock, BinOp, BlockId, Function, FunctionBody, LocalId, MirFunId, Operand, Place,
-        RValue, Statement, Terminator,
+        BinOp, BlockId, Operand, Place, RValue,
+        basic_blocks::{BasicBlock, Statement, Terminator},
+        function::{FunctionBody, MirFunId},
     },
-    types::MirType,
 };
 
 pub struct BlockBuilder {
@@ -130,21 +130,5 @@ impl BlockBuilder {
                 lhs: lhs,
                 rhs: rhs,
             })
-    }
-}
-
-impl Context {
-    pub fn new_local(&mut self, fun: MirFunId, ty: MirType) -> Option<LocalId> {
-        dbg!(fun);
-        dbg!(ty);
-        todo!()
-    }
-}
-
-impl Function {
-    pub fn reserve_new_block(&mut self) -> Option<BlockId> {
-        let id: BlockId = self.get_function_data()?.blocks.len() as BlockId;
-        self.get_function_data_mut()?.blocks.insert(id, None);
-        Some(id)
     }
 }
