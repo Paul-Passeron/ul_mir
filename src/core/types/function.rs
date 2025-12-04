@@ -44,3 +44,9 @@ impl FunctionType {
         self.params = params
     }
 }
+
+impl Into<MirType> for FunctionType {
+    fn into(self) -> MirType {
+        self.into_mir()
+    }
+}

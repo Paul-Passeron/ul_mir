@@ -18,3 +18,9 @@ impl TupleType {
         &self.tys
     }
 }
+
+impl Into<MirType> for TupleType {
+    fn into(self) -> MirType {
+        self.into_mir()
+    }
+}

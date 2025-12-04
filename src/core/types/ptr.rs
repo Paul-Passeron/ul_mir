@@ -20,3 +20,9 @@ impl PtrType {
         self.pointee.as_ref()
     }
 }
+
+impl Into<MirType> for PtrType {
+    fn into(self) -> MirType {
+        self.into_mir()
+    }
+}

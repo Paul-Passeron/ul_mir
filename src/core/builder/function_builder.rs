@@ -27,17 +27,17 @@ impl FunctionBuilder {
         }
     }
 
-    pub fn variadic(&mut self, v: bool) -> &mut Self {
+    pub fn variadic(mut self, v: bool) -> Self {
         self.variadic = v;
         self
     }
 
-    pub fn param(&mut self, ty: MirType) -> &mut Self {
+    pub fn param(mut self, ty: MirType) -> Self {
         self.params.push(ty);
         self
     }
 
-    pub fn ret_ty(&mut self, ty: MirType) -> &mut Self {
+    pub fn ret_ty(mut self, ty: MirType) -> Self {
         self.ret_ty = ty;
         self
     }

@@ -18,3 +18,9 @@ impl IntType {
         MirType::Int(self)
     }
 }
+
+impl Into<MirType> for IntType {
+    fn into(self) -> MirType {
+        self.into_mir()
+    }
+}

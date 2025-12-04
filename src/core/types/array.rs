@@ -15,3 +15,9 @@ impl ArrayType {
         self.ty.as_ref()
     }
 }
+
+impl Into<MirType> for ArrayType {
+    fn into(self) -> MirType {
+        self.into_mir()
+    }
+}
