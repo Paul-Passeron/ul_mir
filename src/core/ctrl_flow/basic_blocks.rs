@@ -1,4 +1,10 @@
-use crate::core::ctrl_flow::{BlockId, LocalId, Operand, Place, RValue};
+use crate::core::ctrl_flow::{
+    BlockId,
+    // LocalId,
+    Operand,
+    Place,
+    RValue,
+};
 
 pub enum Terminator {
     Return(Option<Operand>),
@@ -17,7 +23,7 @@ pub struct BasicBlock {
 
 pub enum Statement {
     Assign(Place, RValue),
-    StorageLive(LocalId),
-    StorageDead(LocalId),
+    // StorageLive(LocalId),
+    // StorageDead(LocalId),
     Nop,
 }

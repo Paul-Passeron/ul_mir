@@ -1,5 +1,3 @@
-use std::{collections::HashMap, iter::once};
-
 use crate::core::{
     Context,
     builder::block_builder::BlockBuilder,
@@ -9,6 +7,8 @@ use crate::core::{
     },
     types::{MirType, function::FunctionType},
 };
+use indexmap::IndexMap;
+use std::iter::once;
 
 pub struct FunctionBuilder {
     ret_ty: MirType,
@@ -67,7 +67,7 @@ impl FunctionBuilder {
                 .enumerate()
                 .map(|x| (x.0 as LocalId, x.1.clone()))
                 .collect(),
-            blocks: HashMap::from_iter(once((0, None))),
+            blocks: IndexMap::from_iter(once((0, None))),
             entry_block: 0,
         };
         let fun = Function {

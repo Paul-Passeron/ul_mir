@@ -102,8 +102,8 @@ impl<'a> DotFormatter<'a> {
     fn format_statement(&self, stmt: &Statement) -> String {
         match stmt {
             Statement::Assign(place, rvalue) => format!("{} = {}", place, rvalue.display(self.ctx)),
-            Statement::StorageLive(id) => format!("live(%{})", id),
-            Statement::StorageDead(id) => format!("dead(%{})", id),
+            // Statement::StorageLive(id) => format!("live(%{})", id),
+            // Statement::StorageDead(id) => format!("dead(%{})", id),
             Statement::Nop => format!("nop"),
         }
     }

@@ -9,3 +9,4 @@ path = "src/main.rs"
 
 [dependencies]
 escape_string = "0.1.2"
+indexmap = "2.12.1"

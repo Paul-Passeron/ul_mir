@@ -1,10 +1,12 @@
+use std::io::Write;
+use std::process::Command;
+// use std::io::Write;
+use std::{fs::File, path::PathBuf};
 use ul_mir::{
     core::{
         Context, PtrSize,
         builder::function_builder::FunctionBuilder,
-        ctrl_flow::{
-            BinOp, Constant, Operand, Place, ProjectionKind, RValue, basic_blocks::Statement,
-        },
+        ctrl_flow::{BinOp, Constant, Operand, Place, ProjectionKind, RValue},
         types::int::IntType,
     },
     output::dot::{DotOutput, function::DotFormatter},
@@ -31,7 +33,7 @@ pub fn fbuilder() {
 
     builder
         .build_block(builder.entry_block(&ctx))
-        .stmt(Statement::StorageLive(call_ret))
+        // .stmt(Statement::StorageLive(call_ret))
         .assign(
             Place::Local(call_ret),
             RValue::Use(Operand::Call {
@@ -80,9 +82,10 @@ pub fn fib() {
 
     builder
         .build_block(entry_id)
-        .stmt(Statement::StorageLive(n_ptr))
-        .stmt(Statement::StorageLive(a_ptr))
-        .stmt(Statement::StorageLive(b_ptr))
+        // .stmt(Statement::StorageLive(builder.param(0, &ctx).unwrap()))
+        // .stmt(Statement::StorageLive(n_ptr))
+        // .stmt(Statement::StorageLive(a_ptr))
+        // .stmt(Statement::StorageLive(b_ptr))
         .assign(
             deref_a.clone(),
             RValue::Use(Operand::Constant(Constant::Int(1, int_type.clone()))),
@@ -106,7 +109,7 @@ pub fn fib() {
 
     builder
         .build_block(cond_id)
-        .stmt(Statement::StorageLive(cond))
+        // .stmt(Statement::StorageLive(cond))
         .binop(
             BinOp::Lt,
             Operand::Copy(deref_n.clone()),
@@ -149,12 +152,21 @@ pub fn fib() {
 
     builder
         .build_block(end_id)
-        .stmt(Statement::StorageDead(cond))
+        // .stmt(Statement::StorageDead(cond))
         .ret(Some(Operand::Copy(deref_a)), &mut ctx);
 
     let fib = builder.finish();
 
-    println!("{}", DotFormatter::new(&ctx, fib).to_dot());
+    let mut f = File::create(PathBuf::from("fib.dot")).unwrap();
+    f.write_fmt(format_args!("{}", DotFormatter::new(&ctx, fib).to_dot()))
+        .unwrap();
+    Command::new("dot")
+        .arg("fib.dot")
+        .arg("-Tpng")
+        .arg("-o")
+        .arg("fib.png")
+        .spawn()
+        .unwrap();
 }
 
 pub fn main() {

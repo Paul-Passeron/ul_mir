@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use indexmap::IndexMap;
 
 use crate::core::{
     ctrl_flow::{BlockId, LocalId, basic_blocks::BasicBlock},
@@ -15,7 +15,7 @@ pub enum FunctionBody {
 pub struct FunctionData {
     pub params: Vec<LocalId>,
     pub locals: Vec<(LocalId, MirType)>,
-    pub blocks: HashMap<BlockId, Option<BasicBlock>>,
+    pub blocks: IndexMap<BlockId, Option<BasicBlock>>,
     pub entry_block: BlockId,
 }
 
