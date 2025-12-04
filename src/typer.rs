@@ -1,14 +1,11 @@
 use crate::core::{
     Context,
-    ctrl_flow::{
-        BinOp, Constant, Function, FunctionLinkage, LocalId, Operand, Place, ProjectionKind,
-        RValue, UnOp,
-    },
+    ctrl_flow::{BinOp, Constant, Function, LocalId, Operand, Place, ProjectionKind, RValue, UnOp},
     types::{MirType, int::IntType, tuple::TupleType},
 };
 
 impl RValue {
-    pub fn get_type(&self, fun: &Function<dyn FunctionLinkage>, ctx: &Context) -> Option<MirType> {
+    pub fn get_type(&self, fun: &Function, ctx: &Context) -> Option<MirType> {
         match self {
             RValue::Use(operand) => operand.get_type(fun, ctx),
             RValue::BinOp(bin_op, lhs, rhs) => {
@@ -66,7 +63,7 @@ impl RValue {
 }
 
 impl Operand {
-    pub fn get_type(&self, fun: &Function<dyn FunctionLinkage>, ctx: &Context) -> Option<MirType> {
+    pub fn get_type(&self, fun: &Function, ctx: &Context) -> Option<MirType> {
         match self {
             Operand::Copy(place) | Operand::Move(place) => place.get_type(fun, ctx),
             Operand::Constant(constant) => Some(constant.get_type()),
@@ -85,7 +82,7 @@ impl Operand {
 }
 
 impl Place {
-    pub fn get_type(&self, fun: &Function<dyn FunctionLinkage>, ctx: &Context) -> Option<MirType> {
+    pub fn get_type(&self, fun: &Function, ctx: &Context) -> Option<MirType> {
         match self {
             Place::Local(id) => fun.type_of_local(*id),
             Place::Projection(place, projection_kind) => {
@@ -109,10 +106,9 @@ impl Place {
     }
 }
 
-impl Function<dyn FunctionLinkage> {
+impl Function {
     pub fn type_of_local(&self, local: LocalId) -> Option<MirType> {
-        self.linkage
-            .get_linkage()?
+        self.get_function_data()?
             .locals
             .iter()
             .find(|x| x.0 == local)

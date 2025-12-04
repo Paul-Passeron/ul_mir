@@ -2,10 +2,7 @@ use std::collections::{HashMap, HashSet};
 
 use crate::core::{
     Context,
-    ctrl_flow::{
-        BasicBlock, BlockId, Function, FunctionLinkage, LocalId, MirFunId, Place, Statement,
-        Terminator,
-    },
+    ctrl_flow::{BasicBlock, BlockId, Function, LocalId, MirFunId, Place, Statement, Terminator},
 };
 
 impl Context {
@@ -22,68 +19,69 @@ impl Context {
         let mut seen: HashSet<BlockId> = HashSet::new();
         let fun = &self.functions[&fun_id];
         let lifetime_map = fun.build_lifetime_map();
-        let linkage = if let Some(linkage) = fun.linkage.get_linkage() {
-            linkage
+        let data = if let Some(data) = fun.get_function_data() {
+            data
         } else {
             return true;
         };
-        for (bb_id, bb) in &linkage.blocks {
+        for (bb_id, bb) in &data.blocks {
             if !seen.insert(*bb_id) {
                 continue;
             }
-
-            if !bb.check_lifetime(&lifetime_map[&bb_id]) {
-                return false;
-            }
-
-            for stmt in &bb.statements {
-                match stmt {
-                    Statement::Assign(place, rvalue) => {
-                        let rval_ty = rvalue.get_type(fun, self);
-                        let pl_ty = place.get_type(fun, self);
-                        if rval_ty.is_none() || pl_ty.is_none() {
-                            return false;
-                        }
-                        if rval_ty.unwrap() != pl_ty.unwrap() {
-                            return false;
-                        }
-                    }
-                    _ => (),
+            if let Some(bb) = bb {
+                if !bb.check_lifetime(&lifetime_map[&bb_id]) {
+                    return false;
                 }
-            }
 
-            todo!("Check terminator")
+                for stmt in &bb.statements {
+                    match stmt {
+                        Statement::Assign(place, rvalue) => {
+                            let rval_ty = rvalue.get_type(fun, self);
+                            let pl_ty = place.get_type(fun, self);
+                            if rval_ty.is_none() || pl_ty.is_none() {
+                                return false;
+                            }
+                            if rval_ty.unwrap() != pl_ty.unwrap() {
+                                return false;
+                            }
+                        }
+                        _ => (),
+                    }
+                }
+                todo!("Check terminator")
+            }
         }
         return true;
     }
 }
 
-impl Function<dyn FunctionLinkage> {
+impl Function {
     pub fn build_lifetime_map(&self) -> HashMap<BlockId, HashSet<LocalId>> {
         let mut visited: HashSet<BlockId> = HashSet::new();
         let mut res = HashMap::new();
         let mut current_vars = HashSet::new();
-        let linkage = if let Some(linkage) = self.linkage.get_linkage() {
-            linkage
+        let data = if let Some(data) = self.get_function_data() {
+            data
         } else {
             return res;
         };
-        let mut worklist = linkage.entry_block.iter().copied().collect::<Vec<_>>();
+        let mut worklist = vec![data.entry_block];
         while let Some(block_id) = worklist.pop() {
             if !visited.insert(block_id) {
                 continue;
             }
             res.insert(block_id, current_vars.clone());
-            let block = &linkage.blocks[&block_id];
-            block.get_surviving_vars(&mut current_vars);
-            match &block.terminator {
-                Terminator::Return(_) => (),
-                Terminator::Goto(next) => worklist.push(*next),
-                Terminator::Iff {
-                    then_dst, else_dst, ..
-                } => {
-                    worklist.push(*then_dst);
-                    worklist.push(*else_dst);
+            if let Some(block) = &data.blocks[&block_id] {
+                block.get_surviving_vars(&mut current_vars);
+                match &block.terminator {
+                    Terminator::Return(_) => (),
+                    Terminator::Goto(next) => worklist.push(*next),
+                    Terminator::Br {
+                        then_dst, else_dst, ..
+                    } => {
+                        worklist.push(*then_dst);
+                        worklist.push(*else_dst);
+                    }
                 }
             }
         }
@@ -91,24 +89,26 @@ impl Function<dyn FunctionLinkage> {
     }
 
     pub fn get_predecessors(&self) -> HashMap<BlockId, HashSet<BlockId>> {
-        let linkage = if let Some(linkage) = self.linkage.get_linkage() {
-            linkage
+        let data = if let Some(data) = self.get_function_data() {
+            data
         } else {
             return HashMap::new();
         };
         let mut predecessors: HashMap<BlockId, HashSet<BlockId>> =
-            HashMap::from_iter(linkage.blocks.iter().map(|x| (*x.0, HashSet::new())));
-        for (block_id, block) in &linkage.blocks {
-            match &block.terminator {
-                Terminator::Return(_) => (),
-                Terminator::Goto(id) => {
-                    predecessors.get_mut(id).unwrap().insert(*block_id);
-                }
-                Terminator::Iff {
-                    then_dst, else_dst, ..
-                } => {
-                    predecessors.get_mut(then_dst).unwrap().insert(*block_id);
-                    predecessors.get_mut(else_dst).unwrap().insert(*block_id);
+            HashMap::from_iter(data.blocks.iter().map(|x| (*x.0, HashSet::new())));
+        for (block_id, block) in &data.blocks {
+            if let Some(block) = block {
+                match &block.terminator {
+                    Terminator::Return(_) => (),
+                    Terminator::Goto(id) => {
+                        predecessors.get_mut(id).unwrap().insert(*block_id);
+                    }
+                    Terminator::Br {
+                        then_dst, else_dst, ..
+                    } => {
+                        predecessors.get_mut(then_dst).unwrap().insert(*block_id);
+                        predecessors.get_mut(else_dst).unwrap().insert(*block_id);
+                    }
                 }
             }
         }

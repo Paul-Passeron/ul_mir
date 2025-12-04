@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::core::{
-    ctrl_flow::{Function, FunctionLinkage, MirFunId},
+    ctrl_flow::{Function, MirFunId},
     types::{
         int::IntType,
         struct_ty::{Struct, StructId},
@@ -31,7 +31,7 @@ impl PtrSize {
 }
 
 pub struct Context {
-    pub functions: HashMap<MirFunId, Function<dyn FunctionLinkage>>,
+    pub functions: HashMap<MirFunId, Function>,
     pub structs: HashMap<StructId, Struct>,
     pub entry_point: Option<MirFunId>,
     pub ptr_size: PtrSize,

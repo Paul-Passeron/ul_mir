@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 use crate::core::types::{MirType, function::FunctionType};
 
@@ -21,7 +21,7 @@ pub enum Statement {
 pub enum Terminator {
     Return(Option<Operand>),
     Goto(BlockId),
-    Iff {
+    Br {
         discriminant: Operand,
         then_dst: BlockId,
         else_dst: BlockId,
@@ -96,72 +96,52 @@ pub enum Constant {
     Null,
 }
 
-pub struct FunExtern;
-pub struct FunStatic {
+pub enum FunctionBody {
+    External,
+    Defined(FunctionData),
+}
+
+pub struct FunctionData {
     pub params: Vec<LocalId>,
-    pub blocks: HashMap<BlockId, BasicBlock>,
-    pub entry_block: Option<BlockId>,
-    pub reserved: HashSet<BlockId>,
-    pub last_reserved: BlockId,
     pub locals: Vec<(LocalId, MirType)>,
+    pub blocks: HashMap<BlockId, Option<BasicBlock>>,
+    pub entry_block: BlockId,
 }
 
-pub trait FunctionLinkage {
-    fn get_linkage(&self) -> Option<&FunStatic>;
-    fn get_linkage_mut(&mut self) -> Option<&mut FunStatic>;
-}
-
-impl FunctionLinkage for FunExtern {
-    fn get_linkage(&self) -> Option<&FunStatic> {
-        None
-    }
-
-    fn get_linkage_mut(&mut self) -> Option<&mut FunStatic> {
-        None
-    }
-}
-
-impl Function<dyn FunctionLinkage> {
-    pub fn reserve_new_block(&mut self) -> Option<BlockId> {
-        let linkage = self.linkage.get_linkage_mut()?;
-        let res = linkage.last_reserved;
-        linkage.last_reserved += 1;
-        linkage.reserved.insert(res);
-        Some(res)
-    }
-
-    pub fn new_local(&mut self, ty: MirType) -> Option<LocalId> {
-        let min = self
-            .linkage
-            .get_linkage()?
-            .locals
-            .iter()
-            .map(|x| x.0)
-            .max_by(u32::cmp)
-            .unwrap_or(0);
-        let res = min + 1;
-        self.linkage.get_linkage_mut()?.locals.push((res, ty));
-        Some(res)
-    }
-}
-
-impl FunctionLinkage for FunStatic {
-    fn get_linkage(&self) -> Option<&FunStatic> {
-        Some(self)
-    }
-
-    fn get_linkage_mut(&mut self) -> Option<&mut FunStatic> {
-        Some(self)
-    }
-}
-
-pub struct Function<T>
-where
-    T: FunctionLinkage + ?Sized,
-{
+pub struct Function {
     pub name: String,
     pub ty: FunctionType,
-    pub linkage: Box<T>,
+    pub body: FunctionBody,
+}
+
+impl Function {
+    pub fn get_function_data(&self) -> Option<&FunctionData> {
+        match &self.body {
+            FunctionBody::Defined(data) => Some(data),
+            FunctionBody::External => None,
+        }
+    }
+
+    pub fn get_function_data_unchecked(&self) -> &FunctionData {
+        match &self.body {
+            FunctionBody::Defined(data) => data,
+            FunctionBody::External => panic!("Cannot get function data for external function"),
+        }
+    }
+
+    pub fn get_function_data_mut(&mut self) -> Option<&mut FunctionData> {
+        match &mut self.body {
+            FunctionBody::Defined(data) => Some(data),
+            FunctionBody::External => None,
+        }
+    }
+
+    pub fn get_function_data_mut_unchecked(&mut self) -> &mut FunctionData {
+        match &mut self.body {
+            FunctionBody::Defined(data) => data,
+            FunctionBody::External => panic!("Cannot get function data for external function"),
+        }
+    }
 }
 
 pub struct BasicBlock {

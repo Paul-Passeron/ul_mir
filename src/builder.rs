@@ -1,18 +1,16 @@
 use crate::core::{
     Context,
     ctrl_flow::{
-        BasicBlock, BinOp, BlockId, LocalId, MirFunId, Operand, Place, RValue, Statement,
-        Terminator,
+        BasicBlock, BinOp, BlockId, Function, FunctionBody, LocalId, MirFunId, Operand, Place,
+        RValue, Statement, Terminator,
     },
     types::MirType,
 };
 
-pub struct Builder<'a> {
+pub struct Builder {
     current_block: BlockId,
-    current_instruction: usize,
     statements: Vec<Statement>,
     fun: MirFunId,
-    ctx: &'a mut Context,
 }
 
 #[derive(Debug)]
@@ -26,31 +24,12 @@ pub enum BuildError {
     },
 }
 
-impl Context {
-    pub fn reserve_new_block(&mut self, fun: MirFunId) -> Option<BlockId> {
-        let func = self.functions.get_mut(&fun)?;
-        func.reserve_new_block()
-    }
-
-    pub fn new_local(&mut self, fun: MirFunId, ty: MirType) -> Option<LocalId> {
-        let func = self.functions.get_mut(&fun)?;
-        func.new_local(ty)
-    }
-}
-
-impl<'a> Builder<'a> {
-    pub fn new(
-        fun: MirFunId,
-        current_block: BlockId,
-        current_instruction: usize,
-        ctx: &'a mut Context,
-    ) -> Self {
+impl Builder {
+    pub fn new(fun: MirFunId, current_block: BlockId) -> Self {
         Self {
             current_block,
-            current_instruction,
             statements: vec![],
             fun,
-            ctx,
         }
     }
 
@@ -62,32 +41,27 @@ impl<'a> Builder<'a> {
         self.fun
     }
 
-    fn build(mut self, terminator: Terminator) -> BlockId {
+    fn finish(mut self, terminator: Terminator, ctx: &mut Context) -> BlockId {
         let statements = self.statements;
         self.statements = vec![];
         let bl = BasicBlock {
             statements,
             terminator,
         };
-        self.ctx
-            .functions
-            .get_mut(&self.fun)
-            .unwrap()
-            .linkage
-            .get_linkage_mut()
-            .unwrap()
-            .blocks
-            .insert(self.current_block, bl);
+        match &mut ctx.functions.get_mut(&self.fun).unwrap().body {
+            FunctionBody::External => unreachable!(),
+            FunctionBody::Defined(function_data) => function_data,
+        }
+        .blocks
+        .insert(self.current_block, Some(bl));
         self.current_block
     }
 
-    fn check_destination(&self, destination: BlockId) -> Result<(), BuildError> {
-        if !self.ctx.functions[&self.fun]
-            .linkage
-            .get_linkage()
-            .unwrap()
-            .reserved
-            .contains(&destination)
+    fn check_destination(&self, destination: BlockId, ctx: &Context) -> Result<(), BuildError> {
+        if !ctx.functions[&self.fun]
+            .get_function_data_unchecked()
+            .blocks
+            .contains_key(&destination)
         {
             Err(BuildError::NoBlockInFun(self.current_block, self.fun))
         } else {
@@ -95,68 +69,78 @@ impl<'a> Builder<'a> {
         }
     }
 
-    pub fn build_goto(self, destination: BlockId) -> Result<(), BuildError> {
-        self.check_destination(destination)?;
-        self.build(Terminator::Goto(destination));
-        Ok(())
+    pub fn goto(self, destination: BlockId, ctx: &mut Context) -> Result<BlockId, BuildError> {
+        self.check_destination(destination, ctx)?;
+        Ok(self.finish(Terminator::Goto(destination), ctx))
     }
 
-    pub fn build_iff(
+    pub fn br(
         self,
         discriminant: Operand,
         then_dst: BlockId,
         else_dst: BlockId,
-    ) -> Result<(), BuildError> {
-        self.check_destination(then_dst)?;
-        self.check_destination(else_dst)?;
-        self.build(Terminator::Iff {
-            discriminant,
-            then_dst,
-            else_dst,
-        });
-        Ok(())
+        ctx: &mut Context,
+    ) -> Result<BlockId, BuildError> {
+        self.check_destination(then_dst, ctx)?;
+        self.check_destination(else_dst, ctx)?;
+        Ok(self.finish(
+            Terminator::Br {
+                discriminant,
+                then_dst,
+                else_dst,
+            },
+            ctx,
+        ))
     }
 
-    pub fn build_return(self, op: Option<Operand>) {
-        self.build(Terminator::Return(op));
+    pub fn ret(self, op: Option<Operand>, ctx: &mut Context) -> BlockId {
+        self.finish(Terminator::Return(op), ctx)
     }
 
-    pub fn position_at(&mut self, instr: usize) -> Result<(), BuildError> {
-        if instr > self.statements.len() {
-            Err(BuildError::InvalidInstructionIndex(instr))
-        } else {
-            self.current_instruction = instr;
-            Ok(())
+    pub fn stmt(&mut self, stmt: Statement) -> &mut Self {
+        self.statements.push(stmt);
+        self
+    }
+
+    pub fn assign(&mut self, place: Place, rvalue: RValue, ctx: &mut Context) -> Option<&mut Self> {
+        let place_ty = place.get_type(&ctx.functions[&self.fun], ctx)?;
+        let rvalue_ty = rvalue.get_type(&ctx.functions[&self.fun], ctx)?;
+        if place_ty != rvalue_ty {
+            return None;
         }
+        Some(self.stmt(Statement::Assign(place, rvalue)))
     }
 
-    pub fn push_stmt(&mut self, stmt: Statement) {
-        self.statements.insert(self.current_instruction, stmt);
-        self.current_instruction += 1;
-    }
-
-    pub fn build_rval(&mut self, rval: RValue, dest: Option<Place>) -> Option<Place> {
-        let fun = &self.ctx.functions[&self.fun];
-        let ty = rval.get_type(fun, self.ctx)?;
-        let place = dest.unwrap_or_else(|| Place::Local(self.ctx.new_local(self.fun, ty).unwrap()));
-        let stmt = Statement::Assign(place.clone(), rval);
-        self.push_stmt(stmt);
-        Some(place)
-    }
-
-    pub fn build_binop(
+    pub fn binop(
         &mut self,
         binop: BinOp,
         lhs: Operand,
         rhs: Operand,
-        dest: Option<Place>,
-    ) -> Result<Place, BuildError> {
+        place: Place,
+        ctx: &mut Context,
+    ) -> Result<&mut Self, BuildError> {
         let rval = RValue::BinOp(binop, lhs.clone(), rhs.clone());
-        self.build_rval(rval, dest)
+        self.assign(place, rval, ctx)
             .ok_or_else(|| BuildError::MismatchedBinOp {
                 op: binop,
                 lhs: lhs,
                 rhs: rhs,
             })
+    }
+}
+
+impl Context {
+    pub fn new_local(&mut self, fun: MirFunId, ty: MirType) -> Option<LocalId> {
+        dbg!(fun);
+        dbg!(ty);
+        todo!()
+    }
+}
+
+impl Function {
+    pub fn reserve_new_block(&mut self) -> Option<BlockId> {
+        let id: BlockId = self.get_function_data()?.blocks.len() as BlockId;
+        self.get_function_data_mut()?.blocks.insert(id, None);
+        Some(id)
     }
 }
