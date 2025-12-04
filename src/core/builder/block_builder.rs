@@ -7,14 +7,14 @@ use crate::core::{
     types::MirType,
 };
 
-pub struct Builder {
+pub struct BlockBuilder {
     current_block: BlockId,
     statements: Vec<Statement>,
     fun: MirFunId,
 }
 
 #[derive(Debug)]
-pub enum BuildError {
+pub enum BlockBuildError {
     NoBlockInFun(BlockId, MirFunId),
     InvalidInstructionIndex(usize),
     MismatchedBinOp {
@@ -24,7 +24,7 @@ pub enum BuildError {
     },
 }
 
-impl Builder {
+impl BlockBuilder {
     pub fn new(fun: MirFunId, current_block: BlockId) -> Self {
         Self {
             current_block,
@@ -57,19 +57,23 @@ impl Builder {
         self.current_block
     }
 
-    fn check_destination(&self, destination: BlockId, ctx: &Context) -> Result<(), BuildError> {
+    fn check_destination(
+        &self,
+        destination: BlockId,
+        ctx: &Context,
+    ) -> Result<(), BlockBuildError> {
         if !ctx.functions[&self.fun]
             .get_function_data_unchecked()
             .blocks
             .contains_key(&destination)
         {
-            Err(BuildError::NoBlockInFun(self.current_block, self.fun))
+            Err(BlockBuildError::NoBlockInFun(self.current_block, self.fun))
         } else {
             Ok(())
         }
     }
 
-    pub fn goto(self, destination: BlockId, ctx: &mut Context) -> Result<BlockId, BuildError> {
+    pub fn goto(self, destination: BlockId, ctx: &mut Context) -> Result<BlockId, BlockBuildError> {
         self.check_destination(destination, ctx)?;
         Ok(self.finish(Terminator::Goto(destination), ctx))
     }
@@ -80,7 +84,7 @@ impl Builder {
         then_dst: BlockId,
         else_dst: BlockId,
         ctx: &mut Context,
-    ) -> Result<BlockId, BuildError> {
+    ) -> Result<BlockId, BlockBuildError> {
         self.check_destination(then_dst, ctx)?;
         self.check_destination(else_dst, ctx)?;
         Ok(self.finish(
@@ -118,10 +122,10 @@ impl Builder {
         rhs: Operand,
         place: Place,
         ctx: &mut Context,
-    ) -> Result<&mut Self, BuildError> {
+    ) -> Result<&mut Self, BlockBuildError> {
         let rval = RValue::BinOp(binop, lhs.clone(), rhs.clone());
         self.assign(place, rval, ctx)
-            .ok_or_else(|| BuildError::MismatchedBinOp {
+            .ok_or_else(|| BlockBuildError::MismatchedBinOp {
                 op: binop,
                 lhs: lhs,
                 rhs: rhs,

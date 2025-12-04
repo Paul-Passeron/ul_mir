@@ -8,6 +8,7 @@ use crate::core::{
     },
 };
 
+pub mod builder;
 pub mod ctrl_flow;
 pub mod types;
 
