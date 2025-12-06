@@ -1,7 +1,4 @@
-use std::io::Write;
-use std::process::Command;
-// use std::io::Write;
-use std::{fs::File, path::PathBuf};
+use std::{fs::File, io::Write, path::PathBuf, process::Command};
 use ul_mir::{
     core::{
         Context, PtrSize,
